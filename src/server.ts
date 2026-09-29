@@ -42,8 +42,8 @@ app.get('/api/info', (_req, res) => {
 // --- Error handling (must be after routes) ---
 app.use(errorHandler);
 
-// --- Start server ---
-const server = app.listen(config.port, () => {
+const host = '0.0.0.0';
+const server = app.listen(config.port, host, () => {
   console.log('\n============================================');
   console.log('  🎬 Video Merger API');
   console.log('============================================');

@@ -344,7 +344,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }),
       });
 
-      const data = await res.json();
+      const contentType = res.headers.get('content-type') || '';
+      let data = {};
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        await res.text();
+        throw new Error(`Server returned HTTP ${res.status} (${res.statusText || 'Bad Gateway'}). Please check if server is running.`);
+      }
+
       setProcessingUI(false);
 
       if (!res.ok) {
