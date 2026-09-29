@@ -9,7 +9,7 @@ import { downloadSocialMedia } from '../services/download.service';
 export async function downloadSocialHandler(
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): Promise<void> {
   const { url, quality, format } = req.body;
 
@@ -31,7 +31,11 @@ export async function downloadSocialHandler(
     );
 
     res.status(200).json(result);
-  } catch (err) {
-    next(err);
+  } catch (err: any) {
+    console.error('[Download Controller Error]', err);
+    res.status(500).json({
+      error: 'Download Failed',
+      message: err.message || 'Failed to download media from the provided URL.',
+    });
   }
 }

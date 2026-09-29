@@ -12,10 +12,6 @@ let ytDlpWrapper: YTDLPWrap | null = null;
  * Ensure yt-dlp binary is available, downloading it if needed.
  */
 async function getytDlp(): Promise<YTDLPWrap> {
-  if (ytDlpWrapper && fs.existsSync(ytdlpBinaryPath)) {
-    return ytDlpWrapper;
-  }
-
   fs.mkdirSync(config.upload.tempDir, { recursive: true });
 
   if (!fs.existsSync(ytdlpBinaryPath)) {
@@ -24,7 +20,16 @@ async function getytDlp(): Promise<YTDLPWrap> {
     console.log('[Downloader] yt-dlp binary downloaded successfully.');
   }
 
-  ytDlpWrapper = new YTDLPWrap(ytdlpBinaryPath);
+  if (process.platform !== 'win32') {
+    try {
+      fs.chmodSync(ytdlpBinaryPath, '755');
+    } catch (_e) {}
+  }
+
+  if (!ytDlpWrapper) {
+    ytDlpWrapper = new YTDLPWrap(ytdlpBinaryPath);
+  }
+
   return ytDlpWrapper;
 }
 
