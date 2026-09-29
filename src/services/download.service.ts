@@ -80,9 +80,9 @@ export async function downloadSocialMedia(
     '--no-playlist',
     '--no-check-certificates',
     '--geo-bypass',
-    '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    '--user-agent', 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Mobile/15E148 Safari/604.1',
     '--referer', 'https://www.youtube.com/',
-    '--extractor-args', 'youtube:player_client=android_embedded,ios,mweb;player_skip=webpage',
+    '--extractor-args', 'youtube:player_client=ios,mweb,android',
   ];
 
   // Configure FFmpeg location if available in config
