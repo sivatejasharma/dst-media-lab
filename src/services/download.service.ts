@@ -74,57 +74,94 @@ export async function downloadSocialMedia(
   const filename = `downloaded_${jobId}_${title}.${ext}`;
   const outputPath = path.join(config.upload.outputDir, filename);
 
-  const args: string[] = [
-    url,
-    '-o', outputPath,
-    '--no-playlist',
-    '--no-check-certificates',
-    '--geo-bypass',
-    '--user-agent', 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Mobile/15E148 Safari/604.1',
-    '--referer', 'https://www.youtube.com/',
-    '--extractor-args', 'youtube:player_client=ios,mweb,android',
-  ];
+  const clientPasses = platform === 'YouTube'
+    ? [
+        'youtube:player_client=mweb,web_embedded',
+        'youtube:player_client=android,ios',
+        'youtube:player_client=web',
+      ]
+    : [''];
 
-  // Configure FFmpeg location if available in config
-  if (config.ffmpegPath) {
-    const ffmpegDir = path.dirname(config.ffmpegPath);
-    args.push('--ffmpeg-location', ffmpegDir);
-  }
+  let lastError: any = null;
+  let success = false;
 
-  if (isAudio) {
-    args.push('-x', '--audio-format', 'mp3', '--audio-quality', '0');
-  } else {
-    // Video + Audio format selection
-    if (quality === '1080p') {
-      args.push('-f', 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/best', '--merge-output-format', 'mp4');
-    } else if (quality === '720p') {
-      args.push('-f', 'bestvideo[height<=720]+bestaudio/best[height<=720]/best', '--merge-output-format', 'mp4');
+  for (const clientArg of clientPasses) {
+    const currentArgs: string[] = [
+      url,
+      '-o', outputPath,
+      '--no-playlist',
+      '--no-check-certificates',
+      '--geo-bypass',
+      '--user-agent', 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Mobile/15E148 Safari/604.1',
+      '--referer', 'https://www.youtube.com/',
+    ];
+
+    if (clientArg) {
+      currentArgs.push('--extractor-args', clientArg);
+    }
+
+    if (config.ffmpegPath) {
+      const ffmpegDir = path.dirname(config.ffmpegPath);
+      currentArgs.push('--ffmpeg-location', ffmpegDir);
+    }
+
+    if (isAudio) {
+      currentArgs.push('-x', '--audio-format', 'mp3', '--audio-quality', '0');
     } else {
-      args.push('-f', 'bestvideo+bestaudio/best', '--merge-output-format', 'mp4');
+      if (quality === '1080p') {
+        currentArgs.push('-f', 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/best', '--merge-output-format', 'mp4');
+      } else if (quality === '720p') {
+        currentArgs.push('-f', 'bestvideo[height<=720]+bestaudio/best[height<=720]/best', '--merge-output-format', 'mp4');
+      } else {
+        currentArgs.push('-f', 'bestvideo+bestaudio/best', '--merge-output-format', 'mp4');
+      }
+    }
+
+    try {
+      console.log(`[Download Job ${jobId}] Executing strategy (${clientArg || 'default'})...`);
+      await new Promise<void>((resolve, reject) => {
+        let errLog = '';
+        const execEmitter = ytdlp.exec(currentArgs);
+
+        execEmitter.on('progress', (progress) => {
+          if (progress.percent) {
+            console.log(`[Download Job ${jobId}] Progress: ${Math.round(progress.percent)}%`);
+          }
+        });
+
+        execEmitter.on('ytDlpEvent', (eventType, eventData) => {
+          if (eventType === 'stderr') {
+            errLog += eventData + ' ';
+          }
+        });
+
+        execEmitter.on('close', () => {
+          if (fs.existsSync(outputPath) && fs.statSync(outputPath).size > 0) {
+            resolve();
+          } else {
+            reject(new Error(errLog || 'OutputFile empty or not created'));
+          }
+        });
+
+        execEmitter.on('error', (err) => {
+          reject(new Error(err.message || errLog));
+        });
+      });
+
+      success = true;
+      break;
+    } catch (err: any) {
+      console.warn(`[Download Job ${jobId}] Strategy (${clientArg || 'default'}) failed: ${err.message}`);
+      lastError = err;
+      if (fs.existsSync(outputPath)) {
+        try { fs.unlinkSync(outputPath); } catch (_e) {}
+      }
     }
   }
 
-  console.log(`[Download Job ${jobId}] Starting download (${quality}, ${formatOption})...`);
-
-  await new Promise<void>((resolve, reject) => {
-    const execEmitter = ytdlp.exec(args);
-
-    execEmitter.on('progress', (progress) => {
-      if (progress.percent) {
-        console.log(`[Download Job ${jobId}] Progress: ${Math.round(progress.percent)}%`);
-      }
-    });
-
-    execEmitter.on('close', () => {
-      console.log(`[Download Job ${jobId}] Download completed: ${filename}`);
-      resolve();
-    });
-
-    execEmitter.on('error', (err) => {
-      console.error(`[Download Job ${jobId}] Download error:`, err.message);
-      reject(new Error(`Social media download failed: ${err.message}`));
-    });
-  });
+  if (!success) {
+    throw new Error(`Social media download failed: ${lastError?.message || 'Unable to download video'}`);
+  }
 
   return {
     jobId,
