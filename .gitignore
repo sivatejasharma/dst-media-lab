@@ -1,0 +1,6 @@
+node_modules/
+dist/
+uploads/
+.env
+*.log
+push_to_github.js
