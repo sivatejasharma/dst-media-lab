@@ -76,8 +76,8 @@ export async function downloadSocialMedia(
 
   const clientPasses = platform === 'YouTube'
     ? [
-        'youtube:player_client=mweb,web_embedded',
         'youtube:player_client=android,ios',
+        'youtube:player_client=mweb,web_embedded',
         'youtube:player_client=web',
       ]
     : [''];
@@ -92,7 +92,8 @@ export async function downloadSocialMedia(
       '--no-playlist',
       '--no-check-certificates',
       '--geo-bypass',
-      '--user-agent', 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Mobile/15E148 Safari/604.1',
+      '--js-runtimes', 'node',
+      '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
       '--referer', 'https://www.youtube.com/',
     ];
 
